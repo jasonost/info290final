@@ -107,10 +107,6 @@ grades = pd.read_csv('%s%s' % (base_path,grades_2011),
 grades = grades[grades.course.apply(lambda x: pd.notnull(x))]
 del grades['dropcol']
 
-events[:10]
-
-grades[:10]
-
 events_coldict = events.to_dict()
 events_rowdict = events.T.to_dict()
 
@@ -146,8 +142,8 @@ for key in events_rowdict:
     event_type = events_rowdict[key]['eventType']
     activity_type = events_rowdict[key]['activityType']
     if user in train_features: # user already in train_features
-        if type(time) == float and str(time) != 'nan': 
-            train_features[user]['total_time'] += time        
+        if type(time) == float and str(time) != 'nan':
+            train_features[user]['total_time'] += time
             train_features[user]['day_times'][day_of_week(updated_at.dayofweek)] += time
             train_features[user]['event_times'][event_type] += time
             train_features[user]['activity_times'][activity_type] += time
@@ -172,6 +168,38 @@ for user in train_features:
         if dictionary != "total_time":
             for m in train_features[user][dictionary]:
                 train_features[user][dictionary][m] = train_features[user][dictionary][m] / total_time
+
+
+grades_coldict = grades.to_dict()
+grades_rowdict = grades.T.to_dict()
+
+# pprint(grades_rowdict)
+
+
+# adding features for scores
+for key in grades_rowdict:
+    user = grades_rowdict[key]['userId']
+    if user in train_features: # user already in train_features
+        # Set average score
+        sum_set_scores = 0
+        num_sets = 29
+        for i in range(0, num_sets):
+            sum_set_scores += grades_rowdict[key]['Set' + str(i)]
+        train_features[user]['average_set_score'] = sum_set_scores / float(num_sets)
+        # s average score
+        sum_s_scores = 0
+        for i in range(0, num_sets):
+            sum_s_scores += grades_rowdict[key]['s' + str(i)]
+        train_features[user]['average_s_score'] = sum_set_scores / float(num_sets)
+        # rest of the features
+        train_features[user]['course_score'] = grades_rowdict[key]['course']
+        train_features[user]['final_exam_score'] = grades_rowdict[key]['final']
+        train_features[user]['hw_score'] = grades_rowdict[key]['hw']
+        train_features[user]['letter'] = grades_rowdict[key]['letter']
+        train_features[user]['demerit'] = grades_rowdict[key]['demerit']
+    else:
+        pass
+
 
 # Testing Vincent's Timing Features
 from pprint import pprint
@@ -209,7 +237,7 @@ print "\nAll user features involving time:"
 pprint(test_user)
 
 
-# MACHINE LEARNING CLUSTERING 
+# MACHINE LEARNING CLUSTERING
 import numpy as np
 from sklearn.cluster import KMeans
 grades_rowdict = grades.T.to_dict()
