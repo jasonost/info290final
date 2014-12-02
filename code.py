@@ -148,14 +148,9 @@ for key in events_rowdict:
     if user in train_features: # user already in train_features
         if type(time) == float and str(time) != 'nan': 
             train_features[user]['total_time'] += time        
-        train_features[user]['day_times'][day_of_week(updated_at.dayofweek)] += 1
-        train_features[user]['event_times'][event_type] += 1
-        train_features[user]['activity_times'][activity_type] += 1
-        average_time = train_features[user]['average_times']
-        average_time['count'] += 1
-        average_time['total'] += (updated_at - average_time['last']).total_seconds()
-        average_time['last'] = updated_at
-        average_time['average'] = average_time['total'] / average_time['count']
+            train_features[user]['day_times'][day_of_week(updated_at.dayofweek)] += time
+            train_features[user]['event_times'][event_type] += time
+            train_features[user]['activity_times'][activity_type] += time
     else: # new user
         # Initialize features here
         user_features = dict()
@@ -166,8 +161,17 @@ for key in events_rowdict:
         user_features['event_times'][event_type] = 1
         user_features['activity_times'] = {'ASSIGNMENT': 0, 'DISCUSS': 0, 'LISTEN': 0, 'PRACTICE': 0, 'READ': 0, 'WATCH': 0}
         user_features['activity_times'][activity_type] = 1
-        user_features['average_times'] = {'count': 0, 'total': 0, 'last': updated_at, 'average': None}
         train_features[user] = user_features
+
+# make everything a percentage of total time
+for user in train_features:
+    total_time = train_features[user]['total_time']
+    if total_time == 0:
+        del train_features[user]
+    for dictionary in train_features[user]:
+        if dictionary != "total_time":
+            for m in train_features[user][dictionary]:
+                train_features[user][dictionary][m] = train_features[user][dictionary][m] / total_time
 
 # Testing Vincent's Timing Features
 from pprint import pprint
@@ -203,3 +207,36 @@ print "\nAll user features involving time:"
 
 # Test user's features
 pprint(test_user)
+
+
+# MACHINE LEARNING CLUSTERING 
+import numpy as np
+from sklearn.cluster import KMeans
+grades_rowdict = grades.T.to_dict()
+skl_features_array = []
+labels = []
+def main():
+    train_features_dict = dict(train_features)
+    count = 0
+    for x in train_features_dict:
+        # create array of features
+        array = [train_features_dict[x][y] for y in train_features_dict[x]]
+        index = 0
+        new_array = []
+        for feature in array:
+            if type(feature) == dict:
+                new_array.extend([feature[f] for f in feature])
+                del array[index]
+            else:
+                new_array.append(feature)
+            index += 1
+        if count > 10:
+            return
+        skl_features_array.append(new_array)
+        count += 1
+main()
+pprint(skl_features_array)
+kmeans = KMeans(init='k-means++', n_clusters=10, n_init=10)
+kmeans.fit(skl_features_array)
+print(kmeans.labels_)
+
