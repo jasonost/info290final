@@ -183,6 +183,7 @@ for user in train_features:
                 key_data[m].append(train_features[user][dictionary][m])
 
 # create number->zscore mappings for each key
+from scipy import stats
 mappings = {}
 for key in key_data:
     inner_dict = {}
