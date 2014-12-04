@@ -109,6 +109,8 @@ del grades['dropcol']
 
 events_coldict = events.to_dict()
 events_rowdict = events.T.to_dict()
+grades_coldict = grades.to_dict()
+grades_rowdict = grades.T.to_dict()
 
 events_rowdict[1378149]
 
@@ -158,23 +160,50 @@ for key in events_rowdict:
         user_features['activity_times'] = {'ASSIGNMENT': 0, 'DISCUSS': 0, 'LISTEN': 0, 'PRACTICE': 0, 'READ': 0, 'WATCH': 0}
         user_features['activity_times'][activity_type] = 1
         train_features[user] = user_features
+        
+user_data = defaultdict(list)
+key_data = defaultdict(list)
 
-# make everything a percentage of total time
+# add all user data to maps
 for user in train_features:
     total_time = train_features[user]['total_time']
+    user_data[user].append(('total_time', total_time))
+    key_data['total_time'].append(total_time)
+    del train_features[user]['event_times']['OPENED']
+    del train_features[user]['activity_times']['DISCUSS']
+    train_features[user]['activity_times']['LISTEN'] += train_features[user]['activity_times']['WATCH']
+    del train_features[user]['activity_times']['WATCH']
     if total_time == 0:
         del train_features[user]
     for dictionary in train_features[user]:
         if dictionary != "total_time":
             for m in train_features[user][dictionary]:
                 train_features[user][dictionary][m] = train_features[user][dictionary][m] / total_time
+                user_data[user].append((m, train_features[user][dictionary][m]))
+                key_data[m].append(train_features[user][dictionary][m])
 
-
-grades_coldict = grades.to_dict()
-grades_rowdict = grades.T.to_dict()
-
-# pprint(grades_rowdict)
-
+# create number->zscore mappings for each key
+mappings = {}
+for key in key_data:
+    inner_dict = {}
+    maps = zip(key_data[key], stats.zscore(key_data[key]))
+    for m in maps:
+        inner_dict[m[0]] = m[1]
+    mappings[key] = inner_dict
+                
+# standardize all other features
+user_data = dict(user_data)
+data_order = []
+tmp = 0
+for key in user_data:
+    all_user_data = user_data[key]
+    zdata = []
+    for data in all_user_data:
+        if tmp == 0:
+            data_order.append(data[0])
+        zdata.append(mappings[data[0]][data[1]])
+    tmp = 1    
+    user_data[key] = zdata
 
 # adding features for scores
 for key in grades_rowdict:
@@ -238,33 +267,51 @@ pprint(test_user)
 
 
 # MACHINE LEARNING CLUSTERING
+# Vincent MACHINE LEARNING CLUSTERING
 import numpy as np
-from sklearn.cluster import KMeans
-grades_rowdict = grades.T.to_dict()
+from sklearn.cluster import KMeans, DBSCAN
+users = []
 skl_features_array = []
-labels = []
 def main():
-    train_features_dict = dict(train_features)
     count = 0
-    for x in train_features_dict:
+    for user in user_data:
         # create array of features
-        array = [train_features_dict[x][y] for y in train_features_dict[x]]
-        index = 0
-        new_array = []
-        for feature in array:
-            if type(feature) == dict:
-                new_array.extend([feature[f] for f in feature])
-                del array[index]
-            else:
-                new_array.append(feature)
-            index += 1
-        if count > 10:
-            return
-        skl_features_array.append(new_array)
+#         if count > 300:
+#             return
+        if len(user_data[user]) != 1:
+            users.append(user)
+            skl_features_array.append(user_data[user])
         count += 1
 main()
-pprint(skl_features_array)
-kmeans = KMeans(init='k-means++', n_clusters=10, n_init=10)
-kmeans.fit(skl_features_array)
-print(kmeans.labels_)
 
+# inspect variables
+# pprint(users)
+# pprint(data_order)
+# pprint(skl_features_array[0])
+
+# # KMEANS
+kmeans = KMeans(init='k-means++', n_clusters=5, n_init=10)
+kmeans.fit(skl_features_array)
+cluster = zip(users, kmeans.labels_)
+cluster_to_users = defaultdict(list)
+for c in cluster:
+    cluster_to_users[c[1]].append(c[0])
+cluster_to_users = dict(cluster_to_users)
+from collections import Counter
+c = Counter(kmeans.labels_)
+# pprint(c) # overview of clusters
+# pprint(data_order) # order of the data
+# pprint(cluster_to_users) # all users in the given clusters
+# example_cluster = 1
+# pprint(user_data[cluster_to_users[example_cluster][0]]) # finding info of specific user
+
+# SWITCH TO DBSCAN
+# x = np.array(skl_features_array)
+# cluster_hash = {}
+# e = 0.1
+# while e < 2:
+#     dbscan = DBSCAN(eps=e, min_samples=10)
+#     c = Counter(dbscan.fit_predict(x))
+#     cluster_hash[e] = c
+#     e += .1
+# pprint(cluster_hash)
