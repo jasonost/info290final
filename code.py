@@ -160,7 +160,7 @@ for key in events_rowdict:
         user_features['activity_times'] = {'ASSIGNMENT': 0, 'DISCUSS': 0, 'LISTEN': 0, 'PRACTICE': 0, 'READ': 0, 'WATCH': 0}
         user_features['activity_times'][activity_type] = 1
         train_features[user] = user_features
-        
+
 user_data = defaultdict(list)
 key_data = defaultdict(list)
 
@@ -191,7 +191,7 @@ for key in key_data:
     for m in maps:
         inner_dict[m[0]] = m[1]
     mappings[key] = inner_dict
-                
+
 # standardize all other features
 user_data = dict(user_data)
 data_order = []
@@ -203,7 +203,7 @@ for key in user_data:
         if tmp == 0:
             data_order.append(data[0])
         zdata.append(mappings[data[0]][data[1]])
-    tmp = 1    
+    tmp = 1
     user_data[key] = zdata
 
 # adding features for scores
@@ -316,3 +316,32 @@ c = Counter(kmeans.labels_)
 #     cluster_hash[e] = c
 #     e += .1
 # pprint(cluster_hash)
+
+
+
+#where the linear regression starts
+
+cluster_As = defaultdict(list)
+for i in cluster_to_users.keys():
+    users = cluster_to_users[i]
+    final_grade = []
+    final_grade_features = []
+    for user in users:
+        # try statement catches the 48 people who didn't have grades
+        try:
+            user_scores = regression_features[user]['scores']
+            user_features = regression_features[user]['features']
+            final_grade.append(user_scores['course_score'])
+            feature_vector = []
+            for f in user_features.keys():
+                feature_vector.append(user_features[f])
+            final_grade_features.append(feature_vector)
+            if user_scores['course_score'] >= 90:
+                cluster_As[i].append(user)
+        except Exception:
+            continue
+
+#     pprint(cluster_As)
+    pprint(final_grade)
+    pprint(final_grade_features)
+
