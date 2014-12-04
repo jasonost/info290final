@@ -266,10 +266,9 @@ print "\nAll user features involving time:"
 # Test user's features
 pprint(test_user)
 
-
-# MACHINE LEARNING CLUSTERING
 # Vincent MACHINE LEARNING CLUSTERING
 import numpy as np
+from collections import Counter
 from sklearn.cluster import KMeans, DBSCAN
 users = []
 skl_features_array = []
@@ -291,15 +290,14 @@ main()
 # pprint(skl_features_array[0])
 
 # # KMEANS
-kmeans = KMeans(init='k-means++', n_clusters=5, n_init=10)
-kmeans.fit(skl_features_array)
-cluster = zip(users, kmeans.labels_)
-cluster_to_users = defaultdict(list)
-for c in cluster:
-    cluster_to_users[c[1]].append(c[0])
-cluster_to_users = dict(cluster_to_users)
-from collections import Counter
-c = Counter(kmeans.labels_)
+# kmeans = KMeans(init='k-means++', n_clusters=5, n_init=10)
+# kmeans.fit(skl_features_array)
+# cluster = zip(users, kmeans.labels_)
+# cluster_to_users = defaultdict(list)
+# for c in cluster:
+#     cluster_to_users[c[1]].append(c[0])
+# cluster_to_users = dict(cluster_to_users)
+# c = Counter(kmeans.labels_)
 # pprint(c) # overview of clusters
 # pprint(data_order) # order of the data
 # pprint(cluster_to_users) # all users in the given clusters
@@ -316,3 +314,19 @@ c = Counter(kmeans.labels_)
 #     cluster_hash[e] = c
 #     e += .1
 # pprint(cluster_hash)
+
+# SWITCH TO SPECTRAL CLUSTERING B/C EVEN CLUSTER SIZE AND NONFLAT GEOMETRY
+from sklearn.cluster.bicluster import SpectralBiclustering
+model = SpectralBiclustering(n_clusters=5, method='log', random_state=0)
+model.fit(skl_features_array)
+cluster = zip(users, model.row_labels_)
+cluster_to_users = defaultdict(list)
+for c in cluster:
+    cluster_to_users[c[1]].append(c[0])
+cluster_to_users = dict(cluster_to_users)
+c = Counter(kmeans.labels_)
+pprint(c) # overview of clusters
+pprint(data_order) # order of the data
+pprint(cluster_to_users) # all users in the given clusters
+example_cluster = 1
+pprint(user_data[cluster_to_users[example_cluster][0]]) # finding info of specific user
