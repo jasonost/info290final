@@ -1,4 +1,5 @@
 import pandas as pd, numpy as np, datetime, random, cPickle as pickle
+from __future__ import division
 pd.set_option('max_colwidth', 200)
 
 base_path = './data/'
@@ -117,28 +118,24 @@ day_of_week = {0: 'Monday',
                6: 'Sunday'}
 
 # calculate time features
-# events = events[(events.activityType != 'DISCUSS') & 
-#                (events.eventType != 'OPENED') &
-#                (events.timeMinutes.apply(lambda x: pd.notnull(x)))]
-#total_time = events.groupby('userId').timeMinutes.sum()
-#day_time = events.groupby(['userId',events.updatedAt.apply(lambda x: day_of_week[x.dayofweek])]).timeMinutes.sum().unstack()
-#event_time = events.groupby(['userId','eventType']).timeMinutes.sum().unstack()
-#activity_time = events.groupby(['userId',events.activityType.apply(lambda x: 'WATCH' if x == 'LISTEN' else x)]).timeMinutes.sum().unstack()
+events = events[(events.activityType != 'DISCUSS') & 
+                (events.eventType != 'OPENED') &
+                (events.timeMinutes.apply(lambda x: pd.notnull(x)))]
+total_time = events.groupby('userId').timeMinutes.sum()
+day_time = events.groupby(['userId',events.updatedAt.apply(lambda x: day_of_week[x.dayofweek])]).timeMinutes.sum().unstack()
+event_time = events.groupby(['userId','eventType']).timeMinutes.sum().unstack()
+activity_time = events.groupby(['userId',events.activityType.apply(lambda x: 'WATCH' if x == 'LISTEN' else x)]).timeMinutes.sum().unstack()
 
 # create full dataframe
-#train_features = pd.DataFrame(total_time).join(day_time).join(event_time).join(activity_time).fillna(0)
+train_features = pd.DataFrame(total_time).join(day_time).join(event_time).join(activity_time).fillna(0)
 
 #todo: add Jason's and Yu's features to 
-for key in events:
-    user = events[key]['userId']
-    print str(user)
-
 
 # calculate percents and z-score columns
-#for feat in train_features.keys():
-#    if feat != 'timeMinutes':
-#        train_features[feat] = train_features[feat] / train_features.timeMinutes
-#    train_features[feat] = stats.mstats.zscore(train_features[feat])
+for feat in train_features.keys():
+    if feat != 'timeMinutes':
+        train_features[feat] = train_features[feat] / train_features.timeMinutes
+    train_features[feat] = stats.mstats.zscore(train_features[feat])
 
 # # Jordeen adding features for scores
 # for key in grades_rowdict:
@@ -165,17 +162,17 @@ for key in events:
 #         pass
 
 # MACHINE LEARNING CLUSTERING
-#import numpy as np
-#from sklearn.cluster import KMeans, DBSCAN
-#kmeans = KMeans(init='k-means++', n_clusters=5, n_init=10)
-#kmeans.fit(train_features)
+import numpy as np
+from sklearn.cluster import KMeans, DBSCAN
+kmeans = KMeans(init='k-means++', n_clusters=5, n_init=10)
+kmeans.fit(train_features)
 
-#from sklearn.cluster.bicluster import SpectralBiclustering
-#model = SpectralBiclustering(n_clusters=5, method='log', random_state=0)
-#model.fit(train_features)
+from sklearn.cluster.bicluster import SpectralBiclustering
+model = SpectralBiclustering(n_clusters=5, method='log', random_state=0)
+model.fit(train_features)
 
-#train_features.loc['bf7aa87b-444a-4eff-9f81-b4078e6dccd3']
+train_features.loc['bf7aa87b-444a-4eff-9f81-b4078e6dccd3']
 
-#model.row_labels_
+model.row_labels_
 
 
