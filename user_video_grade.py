@@ -1,7 +1,7 @@
 import pandas as pd, numpy as np, datetime, random, cPickle as pickle
 pd.set_option('max_colwidth', 200)
 
-events = pd.read_csv("stark_2011_events.csv",
+events = pd.read_csv("./data/stark_2011_events.csv",
                      skiprows=1,
                      names=['userId',
                             'updatedAt',
@@ -22,7 +22,7 @@ events = pd.read_csv("stark_2011_events.csv",
                      delimiter="\t"
                      )
 
-grades = pd.read_csv("anonymized11.csv",
+grades = pd.read_csv("./data/anonymized11.csv",
                      skiprows=1,
                      names=["dropcol",
                             "userId",
