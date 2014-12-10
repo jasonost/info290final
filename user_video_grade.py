@@ -105,35 +105,45 @@ events = events[(events.activityType == 'WATCH') | (events.activityType == 'LIST
 
 # Counting the number of video accessed by each user
 video_map = events.groupby(['userId', 'topicId']).size().unstack().fillna(value=0)
-num_video = video_map.applymap((lambda x: 1 if x > 0 else 0)).sum(axis="columns")
-num_video = pd.DataFrame(num_video, columns=['VideoAccessed'])
+user_video = video_map.applymap((lambda x: 1 if x > 0 else 0)).sum(axis="columns")
+user_video = pd.DataFrame(user_video, columns=['VideoAccessed'])
+
+# Counting the number of suspension
+user_eventType = events.groupby(['userId', 'eventType']).size().unstack()
+user_suspended = user_eventType[['SUSPENDED']].fillna(value=0)
 
 # Getting the grades
 user_grades = grades[['userId', 'hw', 'final', 'course']].set_index('userId')
 
-# Drop final == 0
+# Drop "final == 0"
 user_grades = user_grades[user_grades.final != 0]
 
-# Merge VideoAccessed and grade
-user_data = num_video.join(user_grades).dropna()
+# Merge VideoAccessed and NumSuspension, then calculate the average number of suspension per video
+user_data = user_video.join(user_suspended)
+user_data = user_data[user_data.VideoAccessed > 0]
+user_data['SuspensionPerVideo'] = user_data['SUSPENDED'] / user_data['VideoAccessed']
+
+# Merge grades
+user_data = user_data.join(user_grades).dropna()
 user_data = user_data.sort(columns='VideoAccessed')
 
-user_grades.to_csv("user_video_grade_result.txt")
+#print user_data
+#user_data.to_csv("video_suspend_grade.csv")
 
 
 
 # Dividing users into groups according to the number of suspension
 user_group = []
-for i in range(8):
-    subgroup = user_data[(user_data.VideoAccessed > i * 20) & (user_data.VideoAccessed <= (i+1)*20)]
+for i in range(6):
+    subgroup = user_data[(user_data.SuspensionPerVideo >= i) & (user_data.SuspensionPerVideo < i+1)]
     user_group.append(subgroup)
 
 # Showing the result (space separated)
 print ",hw,final,course,num_users"
-for i in range(8):
+for i in range(6):
     g =  user_group[i]
-    print g.VideoAccessed.mean(),
+    print g.SuspensionPerVideo.mean(),
     print g.hw.mean(),
     print g.final.mean(),
     print g.course.mean(),
-    print g.VideoAccessed.size
+    print g.SuspensionPerVideo.size
